@@ -12,9 +12,14 @@ import {
   EndpointHealthReport,
 } from './types';
 
+const RENDER_API_URL = 'https://ai-vibeathon.onrender.com/api/v1';
+
 export function normalizeApiBaseUrl(raw?: string | null): string {
   const cleaned = (raw || '').trim().replace(/\/+$/, '');
   if (!cleaned) {
+    if (typeof window !== 'undefined' && window.location.hostname.endsWith('vercel.app')) {
+      return RENDER_API_URL;
+    }
     return 'http://localhost:3000/api/v1';
   }
   return cleaned.endsWith('/api/v1') ? cleaned : `${cleaned}/api/v1`;
@@ -26,7 +31,17 @@ export const DEFAULT_API_KEY = 'hf_live_demo1234567890abcdef12345678';
 export function getStoredApiUrl(): string {
   try {
     const stored = localStorage.getItem('hf_api_url')?.trim().replace(/\/+$/, '');
-    return stored ? normalizeApiBaseUrl(stored) : DEFAULT_API_URL;
+    if (!stored) {
+      return DEFAULT_API_URL;
+    }
+    if (
+      typeof window !== 'undefined' &&
+      window.location.protocol === 'https:' &&
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(stored)
+    ) {
+      return DEFAULT_API_URL;
+    }
+    return normalizeApiBaseUrl(stored);
   } catch {
     return DEFAULT_API_URL;
   }

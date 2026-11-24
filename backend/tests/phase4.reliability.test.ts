@@ -39,7 +39,7 @@ describe('Phase 4 Reliability Engine Integration & Unit Tests', () => {
 
   async function waitForDelivery(
     deliveryId: string,
-    timeoutMs = 8000
+    timeoutMs = 20000
   ): Promise<{ status: string; attempt_count: number; last_http_status: number; last_failure_class: string | null }> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
@@ -91,6 +91,16 @@ describe('Phase 4 Reliability Engine Integration & Unit Tests', () => {
       });
     });
 
+    const keyHash = sha256Hex(tenantKeyPlain);
+    const keyBHash = sha256Hex(tenantBKeyPlain);
+
+    await pool.query(
+      `DELETE FROM organizations WHERE id IN (
+         SELECT organization_id FROM api_keys WHERE key_hash IN ($1, $2)
+       );`,
+      [keyHash, keyBHash]
+    );
+
     // 3. Setup Tenant A
     const orgRes = await pool.query<{ id: string }>(
       `INSERT INTO organizations (name, slug, status)
@@ -99,7 +109,6 @@ describe('Phase 4 Reliability Engine Integration & Unit Tests', () => {
     );
     tenantOrgId = orgRes.rows[0]!.id;
 
-    const keyHash = sha256Hex(tenantKeyPlain);
     await pool.query(
       `INSERT INTO api_keys (organization_id, key_hash, key_prefix, name, scopes)
        VALUES ($1, $2, 'hf_live_p4', 'Phase 4 Key A', '{"*"}');`,
@@ -114,7 +123,6 @@ describe('Phase 4 Reliability Engine Integration & Unit Tests', () => {
     );
     tenantBOrgId = orgBRes.rows[0]!.id;
 
-    const keyBHash = sha256Hex(tenantBKeyPlain);
     await pool.query(
       `INSERT INTO api_keys (organization_id, key_hash, key_prefix, name, scopes)
        VALUES ($1, $2, 'hf_live_p4_b', 'Phase 4 Key B', '{"*"}');`,

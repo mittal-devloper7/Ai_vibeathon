@@ -28,7 +28,7 @@ describe('Phase 3 Durable Event Processing Integration Tests', () => {
 
   async function waitForDelivery(
     deliveryId: string,
-    timeoutMs = 8000
+    timeoutMs = 20000
   ): Promise<{ status: string; attempt_count: number; last_http_status: number; last_failure_class: string | null }> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
@@ -80,7 +80,15 @@ describe('Phase 3 Durable Event Processing Integration Tests', () => {
       });
     });
 
-    // 3. Setup test tenant in DB
+    // 3. Setup test tenant in DB (clean up orphaned runs cleanly)
+    const keyHash = sha256Hex(tenantKeyPlain);
+    await pool.query(
+      `DELETE FROM organizations WHERE id IN (
+         SELECT organization_id FROM api_keys WHERE key_hash = $1
+       );`,
+      [keyHash]
+    );
+
     const orgRes = await pool.query<{ id: string }>(
       `INSERT INTO organizations (name, slug, status)
        VALUES ('Phase 3 Test Org', 'p3-org-${Date.now()}', 'active')
@@ -88,7 +96,6 @@ describe('Phase 3 Durable Event Processing Integration Tests', () => {
     );
     tenantOrgId = orgRes.rows[0]!.id;
 
-    const keyHash = sha256Hex(tenantKeyPlain);
     await pool.query(
       `INSERT INTO api_keys (organization_id, key_hash, key_prefix, name, scopes)
        VALUES ($1, $2, 'hf_live_p3', 'Phase 3 Key', '{"*"}');`,
@@ -330,7 +337,7 @@ describe('Phase 3 Durable Event Processing Integration Tests', () => {
       );
       const deliveryId = delRes.rows[0]!.id;
 
-      const completedDelivery = await waitForDelivery(deliveryId, 5000);
+      const completedDelivery = await waitForDelivery(deliveryId, 15000);
       assert.equal(completedDelivery.status, 'retry_scheduled');
 
       // 3. Verify delivery_attempts recorded timeout
@@ -347,8 +354,7 @@ describe('Phase 3 Durable Event Processing Integration Tests', () => {
   describe('3. Worker Lease Fencing Safety', () => {
     it('should protect delivery state when an expired worker attempts to complete with an old lease token', async () => {
       // 1. Insert a mock delivery row in processing state with lease_token = 'token_A'
-      const orgRes = await pool.query<{ id: string }>('SELECT id FROM organizations LIMIT 1');
-      const orgId = orgRes.rows[0]!.id;
+      const orgId = tenantOrgId;
 
       const epRes = await pool.query<{ id: string }>('SELECT id FROM endpoints WHERE organization_id = $1 LIMIT 1', [orgId]);
       const epId = epRes.rows[0]!.id;

@@ -32,6 +32,15 @@ describe('Phase 5 Google Gemini Integration & Unit Tests', () => {
   let tenantADeliveryId: string;
 
   before(async () => {
+    const keyAHash = sha256Hex(tenantAKeyPlain);
+    const keyBHash = sha256Hex(tenantBKeyPlain);
+    await pool.query(
+      `DELETE FROM organizations WHERE id IN (
+         SELECT organization_id FROM api_keys WHERE key_hash IN ($1, $2)
+       );`,
+      [keyAHash, keyBHash]
+    );
+
     // 1. Setup Tenant A
     const orgResA = await pool.query<{ id: string }>(
       `INSERT INTO organizations (name, slug, status)
@@ -43,7 +52,7 @@ describe('Phase 5 Google Gemini Integration & Unit Tests', () => {
     await pool.query(
       `INSERT INTO api_keys (organization_id, name, key_hash, key_prefix, scopes)
        VALUES ($1, 'Test A Key', $2, 'hf_live', ARRAY['*']);`,
-      [tenantAOrgId, sha256Hex(tenantAKeyPlain)]
+      [tenantAOrgId, keyAHash]
     );
 
     // 2. Setup Tenant B
@@ -57,7 +66,7 @@ describe('Phase 5 Google Gemini Integration & Unit Tests', () => {
     await pool.query(
       `INSERT INTO api_keys (organization_id, name, key_hash, key_prefix, scopes)
        VALUES ($1, 'Test B Key', $2, 'hf_live', ARRAY['*']);`,
-      [tenantBOrgId, sha256Hex(tenantBKeyPlain)]
+      [tenantBOrgId, keyBHash]
     );
 
     // 3. Create Tenant A Endpoint

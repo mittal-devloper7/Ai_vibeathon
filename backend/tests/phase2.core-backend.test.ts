@@ -34,6 +34,17 @@ describe('Phase 2 Core Backend Integration Tests', () => {
       });
     });
 
+    const keyAHash = sha256Hex(tenantAKeyPlain);
+    const keyBHash = sha256Hex(tenantBKeyPlain);
+    const revokedKeyHash = sha256Hex(revokedKeyPlain);
+
+    await pool.query(
+      `DELETE FROM organizations WHERE id IN (
+         SELECT organization_id FROM api_keys WHERE key_hash IN ($1, $2, $3)
+       );`,
+      [keyAHash, keyBHash, revokedKeyHash]
+    );
+
     // 1. Setup Tenant A
     const orgARes = await pool.query<{ id: string }>(
       `INSERT INTO organizations (name, slug, status)
@@ -42,7 +53,6 @@ describe('Phase 2 Core Backend Integration Tests', () => {
     );
     tenantAOrgId = orgARes.rows[0]!.id;
 
-    const keyAHash = sha256Hex(tenantAKeyPlain);
     const keyARes = await pool.query<{ id: string }>(
       `INSERT INTO api_keys (organization_id, key_hash, key_prefix, name, scopes)
        VALUES ($1, $2, 'hf_live_tenant_a', 'Tenant A Live Key', '{"*"}')
@@ -59,7 +69,6 @@ describe('Phase 2 Core Backend Integration Tests', () => {
     );
     tenantBOrgId = orgBRes.rows[0]!.id;
 
-    const keyBHash = sha256Hex(tenantBKeyPlain);
     await pool.query(
       `INSERT INTO api_keys (organization_id, key_hash, key_prefix, name, scopes)
        VALUES ($1, $2, 'hf_live_tenant_b', 'Tenant B Live Key', '{"*"}');`,
@@ -67,7 +76,6 @@ describe('Phase 2 Core Backend Integration Tests', () => {
     );
 
     // 3. Setup Revoked Key
-    const revokedKeyHash = sha256Hex(revokedKeyPlain);
     await pool.query(
       `INSERT INTO api_keys (organization_id, key_hash, key_prefix, name, revoked_at)
        VALUES ($1, $2, 'hf_live_revoked', 'Revoked Key', NOW());`,
