@@ -1,0 +1,22 @@
+{
+  "name": "hookforge-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "compose:up": "docker compose up -d --build",
+    "migrate": "npm --prefix backend run migrate",
+    "seed": "npm --prefix backend run seed",
+    "test": "npm --prefix backend test",
+    "build:backend": "npm --prefix backend run build",
+    "build:frontend": "npm --prefix frontend run build",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "verify:demo": "powershell -ExecutionPolicy Bypass -File scripts/demo-verify.ps1",
+    "verify:demo:bash": "bash scripts/demo-verify.sh",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:worker": "npm --prefix backend run worker",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:simulator": "npm --prefix merchant-simulator run dev"
+  }
+}

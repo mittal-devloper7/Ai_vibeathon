@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  body {
+    @apply bg-forge-950 text-slate-100 font-sans antialiased min-h-screen selection:bg-brand-500/30 selection:text-brand-200;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  /* Custom high-craft scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #06080d;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1a2232;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2f3c54;
+  }
+}
+
+@layer utilities {
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .card-surface {
+    @apply bg-forge-900/90 border border-white/[0.07] rounded-xl shadow-subtle backdrop-blur-sm;
+  }
+
+  .card-surface-elevated {
+    @apply bg-forge-850/95 border border-white/[0.1] rounded-xl shadow-lg;
+  }
+
+  .border-subtle {
+    border-color: rgba(255, 255, 255, 0.07);
+  }
+
+  .border-muted {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .border-emphasis {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
