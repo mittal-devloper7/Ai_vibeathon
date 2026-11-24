@@ -12,6 +12,8 @@ export interface EnvConfig {
   PORT: number;
   DATABASE_URL: string;
   DATABASE_POOL_MAX: number;
+  DATABASE_CONNECTION_TIMEOUT_MS: number;
+  DATABASE_SSL_REJECT_UNAUTHORIZED?: boolean;
   REDIS_URL: string;
   HMAC_MASTER_KEY: string;
   GEMINI_API_KEY: string;
@@ -19,6 +21,8 @@ export interface EnvConfig {
   LOG_LEVEL: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace' | 'silent';
   ALLOW_INSECURE_HTTP_ENDPOINTS: boolean;
   ALLOWED_INTERNAL_HOSTS: string;
+  CORS_ORIGIN: string;
+  FRONTEND_URL: string;
   QUEUE_NAME: string;
   WORKER_CONCURRENCY: number;
   GLOBAL_MAX_IN_FLIGHT: number;
@@ -39,6 +43,8 @@ const envSchema = Joi.object({
       'string.uriCustomScheme': 'DATABASE_URL must be a valid PostgreSQL connection URI',
     }),
   DATABASE_POOL_MAX: Joi.number().integer().min(1).max(100).default(20),
+  DATABASE_CONNECTION_TIMEOUT_MS: Joi.number().integer().min(1000).max(120000).default(30000),
+  DATABASE_SSL_REJECT_UNAUTHORIZED: Joi.boolean().truthy('true').falsy('false').optional(),
   REDIS_URL: Joi.string()
     .uri({ scheme: [/redis/, /rediss/] })
     .required()
@@ -58,6 +64,8 @@ const envSchema = Joi.object({
     .default('info'),
   ALLOW_INSECURE_HTTP_ENDPOINTS: Joi.boolean().truthy('true').falsy('false').default(false),
   ALLOWED_INTERNAL_HOSTS: Joi.string().allow('').default(''),
+  CORS_ORIGIN: Joi.string().allow('').default(''),
+  FRONTEND_URL: Joi.string().allow('').default(''),
   QUEUE_NAME: Joi.string().default('hookforge-deliveries'),
   WORKER_CONCURRENCY: Joi.number().integer().min(1).max(100).default(10),
   GLOBAL_MAX_IN_FLIGHT: Joi.number().integer().min(1).max(500).default(50),

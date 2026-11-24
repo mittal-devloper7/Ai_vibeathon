@@ -1,9 +1,11 @@
 import crypto from 'node:crypto';
-import { pool, withTransaction } from './pool.js';
+import { pool, waitForDatabaseReady, withTransaction } from './pool.js';
 import { logger } from '../shared/logger.js';
 
 export async function runSeed(): Promise<void> {
   logger.info('Starting idempotent database seeder...');
+
+  await waitForDatabaseReady();
 
   const orgSlug = 'acme-demo';
   const plainApiKey = 'hf_live_demo1234567890abcdef12345678';
@@ -78,7 +80,7 @@ export async function runSeed(): Promise<void> {
 }
 
 const isDirectRun = process.argv[1]?.replace(/\\/g, '/').endsWith('src/database/seed.ts') ||
-                    process.argv[1]?.replace(/\\/g, '/').endsWith('dist/database/seed.js');
+  process.argv[1]?.replace(/\\/g, '/').endsWith('dist/database/seed.js');
 
 if (isDirectRun) {
   runSeed()

@@ -21,6 +21,7 @@ import {
   setStoredApiUrl,
   getStoredApiKey,
   setStoredApiKey,
+  normalizeApiBaseUrl,
   DEFAULT_API_KEY,
   DEFAULT_API_URL,
 } from '../api/client';
@@ -64,7 +65,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 
   const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault();
-    setStoredApiUrl(apiUrl);
+    const normalized = apiUrl.trim() ? normalizeApiBaseUrl(apiUrl) : DEFAULT_API_URL;
+    setApiUrl(normalized);
+    setStoredApiUrl(normalized);
     setStoredApiKey(apiKey);
     setIsSaved(true);
     toast.success('API configuration saved successfully', 'Configuration Updated');
@@ -356,11 +359,11 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                     type="text"
                     value={apiUrl}
                     onChange={(e) => setApiUrl(e.target.value)}
-                    placeholder="http://localhost:3000/api/v1"
+                    placeholder={DEFAULT_API_URL}
                     className="w-full px-3 py-2 text-xs font-mono bg-forge-950 border border-white/[0.1] rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500"
                   />
-                  <span className="text-[10px] text-slate-400 mt-1 block">
-                    Default: http://localhost:3000/api/v1
+                  <span className="text-[10px] text-slate-400 mt-1 block truncate">
+                    Default: {DEFAULT_API_URL}
                   </span>
                 </div>
 
@@ -394,10 +397,15 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Ready (PostgreSQL 18 & Redis 8 healthy)</span>
                     </span>
+                  ) : health?.status === 'degraded' ? (
+                    <span className="text-amber-400 font-medium flex items-center space-x-1">
+                      <X className="w-3.5 h-3.5" />
+                      <span>Degraded (PostgreSQL: {isPostgresUp ? 'UP' : 'DOWN'}, Redis: {isRedisUp ? 'UP' : 'DOWN'})</span>
+                    </span>
                   ) : (
                     <span className="text-rose-400 font-medium flex items-center space-x-1">
                       <X className="w-3.5 h-3.5" />
-                      <span>Unreachable (ensure backend dev server is running on port 3000)</span>
+                      <span>Unreachable or waking up (check backend URL & cold start)</span>
                     </span>
                   )}
                 </div>

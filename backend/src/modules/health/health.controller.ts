@@ -1,17 +1,23 @@
 import net from 'node:net';
+import tls from 'node:tls';
 import { Request, Response } from 'express';
 import { pool } from '../../database/pool.js';
 import { env } from '../../config/env.js';
 import { logger } from '../../shared/logger.js';
 
-function checkRedisConnectivity(redisUrl: string, timeoutMs = 2000): Promise<boolean> {
+function checkRedisConnectivity(redisUrl: string, timeoutMs = 5000): Promise<boolean> {
   return new Promise((resolve) => {
     try {
       const parsed = new URL(redisUrl);
       const port = parseInt(parsed.port || '6379', 10);
       const host = parsed.hostname || '127.0.0.1';
-      const socket = new net.Socket();
+      const isTls = parsed.protocol === 'rediss:';
+      const socket: net.Socket | tls.TLSSocket = isTls
+        ? tls.connect({ host, port, servername: host })
+        : net.connect({ host, port });
+
       let resolved = false;
+      let responseBuffer = '';
 
       const finish = (isHealthy: boolean) => {
         if (!resolved) {
@@ -23,20 +29,26 @@ function checkRedisConnectivity(redisUrl: string, timeoutMs = 2000): Promise<boo
 
       socket.setTimeout(timeoutMs);
 
-      socket.on('connect', () => {
+      const sendPing = () => {
         if (parsed.password) {
-          socket.write(`AUTH ${parsed.password}\r\n`);
+          const password = decodeURIComponent(parsed.password);
+          if (parsed.username) {
+            const username = decodeURIComponent(parsed.username);
+            socket.write(`AUTH ${username} ${password}\r\n`);
+          } else {
+            socket.write(`AUTH ${password}\r\n`);
+          }
         }
         socket.write('PING\r\n');
-      });
+      };
+
+      socket.on(isTls ? 'secureConnect' : 'connect', sendPing);
 
       socket.on('data', (data) => {
-        const response = data.toString();
-        if (response.includes('+PONG')) {
+        responseBuffer += data.toString();
+        if (responseBuffer.includes('+PONG')) {
           finish(true);
-        } else if (response.includes('+OK')) {
-          socket.write('PING\r\n');
-        } else {
+        } else if (responseBuffer.includes('-ERR') || responseBuffer.includes('-NOAUTH') || responseBuffer.includes('-WRONGPASS')) {
           finish(false);
         }
       });
@@ -44,8 +56,6 @@ function checkRedisConnectivity(redisUrl: string, timeoutMs = 2000): Promise<boo
       socket.on('timeout', () => finish(false));
       socket.on('error', () => finish(false));
       socket.on('close', () => finish(false));
-
-      socket.connect(port, host);
     } catch {
       resolve(false);
     }
@@ -76,7 +86,7 @@ export class HealthController {
 
     // Check Redis
     try {
-      redisHealthy = await checkRedisConnectivity(env.REDIS_URL, 2000);
+      redisHealthy = await checkRedisConnectivity(env.REDIS_URL, 5000);
     } catch (err) {
       logger.warn({ err }, 'Health ready check: Redis ping failed');
       redisHealthy = false;

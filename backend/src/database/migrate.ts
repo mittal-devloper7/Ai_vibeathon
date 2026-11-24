@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pool, withTransaction } from './pool.js';
+import { pool, waitForDatabaseReady, withTransaction } from './pool.js';
 import { logger } from '../shared/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -9,6 +9,8 @@ const __dirname = path.dirname(__filename);
 
 export async function runMigrations(): Promise<string[]> {
   logger.info('Starting database migration runner...');
+
+  await waitForDatabaseReady();
 
   // Ensure schema_migrations table exists
   await pool.query(`
@@ -55,17 +57,17 @@ export async function runMigrations(): Promise<string[]> {
 }
 
 const isDirectRun = process.argv[1]?.replace(/\\/g, '/').endsWith('src/database/migrate.ts') ||
-                    process.argv[1]?.replace(/\\/g, '/').endsWith('dist/database/migrate.js');
+  process.argv[1]?.replace(/\\/g, '/').endsWith('dist/database/migrate.js');
 
 if (isDirectRun) {
   runMigrations()
     .then(async () => {
-      await pool.end();
+      await pool.end().catch(() => {});
       process.exit(0);
     })
     .catch(async (err) => {
       logger.error({ err }, 'Migration runner failed');
-      await pool.end();
+      await pool.end().catch(() => {});
       process.exit(1);
     });
 }

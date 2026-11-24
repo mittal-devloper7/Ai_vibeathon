@@ -12,23 +12,53 @@ import {
   EndpointHealthReport,
 } from './types';
 
-export const DEFAULT_API_URL = 'http://localhost:3000/api/v1';
+export function normalizeApiBaseUrl(raw?: string | null): string {
+  const cleaned = (raw || '').trim().replace(/\/+$/, '');
+  if (!cleaned) {
+    return 'http://localhost:3000/api/v1';
+  }
+  return cleaned.endsWith('/api/v1') ? cleaned : `${cleaned}/api/v1`;
+}
+
+export const DEFAULT_API_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 export const DEFAULT_API_KEY = 'hf_live_demo1234567890abcdef12345678';
 
 export function getStoredApiUrl(): string {
-  return localStorage.getItem('hf_api_url') || DEFAULT_API_URL;
+  try {
+    const stored = localStorage.getItem('hf_api_url')?.trim().replace(/\/+$/, '');
+    return stored ? normalizeApiBaseUrl(stored) : DEFAULT_API_URL;
+  } catch {
+    return DEFAULT_API_URL;
+  }
 }
 
 export function setStoredApiUrl(url: string): void {
-  localStorage.setItem('hf_api_url', url.trim().replace(/\/+$/, ''));
+  try {
+    const cleaned = url.trim().replace(/\/+$/, '');
+    if (!cleaned) {
+      localStorage.removeItem('hf_api_url');
+      return;
+    }
+    localStorage.setItem('hf_api_url', normalizeApiBaseUrl(cleaned));
+  } catch {
+    // Ignore storage access errors in restricted browsing modes
+  }
 }
 
 export function getStoredApiKey(): string {
-  return localStorage.getItem('hf_api_key') || DEFAULT_API_KEY;
+  try {
+    return localStorage.getItem('hf_api_key')?.trim() || DEFAULT_API_KEY;
+  } catch {
+    return DEFAULT_API_KEY;
+  }
 }
 
 export function setStoredApiKey(key: string): void {
-  localStorage.setItem('hf_api_key', key.trim());
+  try {
+    localStorage.setItem('hf_api_key', key.trim());
+  } catch {
+    // Ignore storage access errors in restricted browsing modes
+  }
 }
 
 export class ApiError extends Error {
@@ -45,6 +75,21 @@ export class ApiError extends Error {
   }
 }
 
+async function parseResponseBody(response: Response): Promise<{ isJson: boolean; data: any }> {
+  const contentType = response.headers.get('content-type') || '';
+  const text = await response.text().catch(() => '');
+
+  if (contentType.includes('application/json') && text) {
+    try {
+      return { isJson: true, data: JSON.parse(text) };
+    } catch {
+      return { isJson: false, data: text };
+    }
+  }
+
+  return { isJson: false, data: text };
+}
+
 async function request<T>(
   path: string,
   options: {
@@ -52,6 +97,8 @@ async function request<T>(
     body?: any;
     headers?: Record<string, string>;
     overrideUrl?: string;
+    timeoutMs?: number;
+    allowDegradedHealth?: boolean;
   } = {}
 ): Promise<T> {
   const baseUrl = options.overrideUrl || getStoredApiUrl();
@@ -68,21 +115,58 @@ async function request<T>(
     headers['Content-Type'] = 'application/json';
   }
 
-  const response = await fetch(url, {
-    method: options.method || 'GET',
-    headers,
-    body: options.body && !(options.body instanceof FormData) ? JSON.stringify(options.body) : options.body,
-  });
+  const controller = new AbortController();
+  const timeoutMs = options.timeoutMs ?? 35000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  const contentType = response.headers.get('content-type') || '';
-  const isJson = contentType.includes('application/json');
-  const data = isJson ? await response.json() : await response.text();
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: options.method || 'GET',
+      headers,
+      body: options.body && !(options.body instanceof FormData) ? JSON.stringify(options.body) : options.body,
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err?.name === 'AbortError') {
+      throw new ApiError(
+        504,
+        'REQUEST_TIMEOUT',
+        'Backend request timed out (server may be waking up from cold start). Please retry.'
+      );
+    }
+    throw new ApiError(
+      0,
+      'NETWORK_ERROR',
+      'Unable to reach the backend API. Check your API Base URL, CORS configuration, or wait ~30s for cold start.'
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  const { isJson, data } = await parseResponseBody(response);
+
+  if (options.allowDegradedHealth && response.status === 503 && isJson && data?.checks) {
+    return data as T;
+  }
 
   if (!response.ok) {
     if (isJson && data?.error) {
-      throw new ApiError(response.status, data.error.code || 'UNKNOWN_ERROR', data.error.message || 'API request failed', data.error.details);
+      throw new ApiError(
+        response.status,
+        data.error.code || 'UNKNOWN_ERROR',
+        data.error.message || 'API request failed',
+        data.error.details
+      );
     }
-    throw new ApiError(response.status, 'HTTP_ERROR', typeof data === 'string' ? data : 'API request failed');
+    const fallbackMessage =
+      response.status >= 502 && response.status <= 504
+        ? `Backend returned HTTP ${response.status} (service may be starting up). Please retry in a few seconds.`
+        : typeof data === 'string' && data
+          ? data
+          : `API request failed with HTTP ${response.status}`;
+    throw new ApiError(response.status, 'HTTP_ERROR', fallbackMessage);
   }
 
   return data as T;
@@ -95,6 +179,8 @@ export const api = {
     return request<HealthCheckResponse>(`${origin}/health/ready`, {
       headers: {},
       overrideUrl: `${origin}/health/ready`,
+      timeoutMs: 45000,
+      allowDegradedHealth: true,
     });
   },
 
@@ -149,6 +235,7 @@ export const api = {
     const res = await request<any>(`/endpoints/${id}/health-report`, {
       method: 'POST',
       body: { force_refresh: forceRefresh },
+      timeoutMs: 45000,
     });
     return {
       ...res,
@@ -218,6 +305,7 @@ export const api = {
     const res = await request<any>(`/deliveries/${id}/diagnose`, {
       method: 'POST',
       body: { force_refresh: forceRefresh },
+      timeoutMs: 45000,
     });
     return {
       ...res,

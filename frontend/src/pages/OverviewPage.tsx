@@ -17,7 +17,7 @@ import {
   HelpCircle,
   AlertCircle,
 } from 'lucide-react';
-import { api } from '../api/client';
+import { api, getStoredApiUrl } from '../api/client';
 import { DashboardMetrics, Endpoint, DeliverySummary } from '../api/types';
 import { DeliveryDetailModal } from '../components/DeliveryDetailModal';
 
@@ -122,7 +122,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ onNavigate }) => {
             <div className="font-semibold text-rose-200">Unable to retrieve live telemetry metrics</div>
             <div className="text-rose-400">{error}</div>
             <div className="text-rose-400/80 text-[11px]">
-              Ensure backend server is running on port 3000 and valid tenant key is configured in Header.
+              Verify your backend API ({getStoredApiUrl()}) is reachable (hosted services may take ~30s on cold start) and a valid tenant key is set in the Header.
             </div>
           </div>
         </div>

@@ -3,11 +3,19 @@ import { env } from '../config/env.js';
 import { logger } from '../shared/logger.js';
 
 /**
- * Returns connection options configured for BullMQ compatibility
- * (specifically maxRetriesPerRequest: null and enableReadyCheck: false).
+ * Returns connection options parsed from REDIS_URL and configured for
+ * BullMQ compatibility (supports both local redis:// and TLS rediss:// such as Upstash).
  */
-export function getRedisConnectionOptions(): RedisOptions {
-  return {
+export function getRedisConnectionOptions(redisUrl: string = env.REDIS_URL): RedisOptions {
+  const parsed = new URL(redisUrl);
+  const port = parsed.port ? parseInt(parsed.port, 10) : 6379;
+  const dbPath = parsed.pathname.replace(/^\//, '');
+  const db = dbPath ? parseInt(dbPath, 10) : undefined;
+
+  const options: RedisOptions = {
+    host: parsed.hostname || '127.0.0.1',
+    port: Number.isFinite(port) ? port : 6379,
+    connectTimeout: 15000,
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
     retryStrategy(times) {
@@ -15,13 +23,30 @@ export function getRedisConnectionOptions(): RedisOptions {
       return delay;
     },
   };
+
+  if (parsed.username) {
+    options.username = decodeURIComponent(parsed.username);
+  }
+  if (parsed.password) {
+    options.password = decodeURIComponent(parsed.password);
+  }
+  if (db !== undefined && Number.isFinite(db)) {
+    options.db = db;
+  }
+  if (parsed.protocol === 'rediss:') {
+    options.tls = {
+      servername: parsed.hostname,
+    };
+  }
+
+  return options;
 }
 
 /**
  * Factory function creating a new ioredis connection with BullMQ-compatible settings.
  */
 export function createRedisClient(): Redis {
-  const client = new Redis(env.REDIS_URL, getRedisConnectionOptions());
+  const client = new Redis(getRedisConnectionOptions());
 
   client.on('error', (err) => {
     logger.error({ err }, 'Redis connection error');
