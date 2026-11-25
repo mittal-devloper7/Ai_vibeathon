@@ -114,7 +114,7 @@ flowchart TD
 | [backend/src/modules/](backend/src/modules/events/events.service.ts) | Modular `controller → service → repository` slices for `endpoints`, `events`, `deliveries`, `dashboard`, `gemini`, and `health`. |
 | [backend/src/engine/](backend/src/engine/workers/deliveryWorker.ts) | Core engine (`outboxPublisher.ts`, `deliveryWorker.ts`, `reconciler.ts`, `circuitBreaker.ts`, `hmacSigner.ts`, `ssrfGuard.ts`, `httpDispatcher.ts`, `classifier.ts`, `retryPolicy.ts`). |
 | [frontend/src/](frontend/src/App.tsx) | React 18 + TypeScript + Tailwind console (`OverviewPage`, `EndpointsPage`, `EventLabPage`, `DeliveriesPage`, `GuidePage`, `DeliveryDetailModal`, `ConfirmModal`, `Header`). |
-| [merchant-simulator/](merchant-simulator/src/app.ts) | Interactive receiver simulator (`/scenario/success`, `/bad-request`, `/retryable`, `/server-error`, `/slow`, `/reset`, `/duplicate-check`) with live HMAC verification. |
+| [merchant-simulator/](merchant-simulator/src/app.ts) | Interactive receiver simulator (`/scenario/success`, `/bad-request`, `/rate-limit`, `/server-error`, `/slow`, `/reset`, `/duplicate-check`) with live HMAC verification. |
 | [scripts/](scripts/demo-verify.ps1) | End-to-end automated reliability & chaos verification scripts (`demo-verify.ps1` and `demo-verify.sh`). |
 
 ---
