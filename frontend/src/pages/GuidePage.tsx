@@ -59,7 +59,9 @@ const CodeSnippet: React.FC<CodeSnippetProps> = ({ code, language = 'json', titl
           {title || language.toUpperCase()}
         </span>
         <button
+          type="button"
           onClick={handleCopy}
+          aria-label={`Copy ${title || language} snippet`}
           className="text-slate-400 hover:text-slate-200 flex items-center space-x-1 text-[11px] font-sans transition"
         >
           {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -111,7 +113,14 @@ export const GuidePage: React.FC<GuidePageProps> = ({ onNavigate }) => {
             <span className="text-xs font-mono text-slate-400">
               Chapter <strong className="text-brand-300">{currentChapter}</strong> of {chapters.length}
             </span>
-            <div className="w-24 h-2 bg-forge-950 rounded-full overflow-hidden border border-white/[0.08]">
+            <div
+              role="progressbar"
+              aria-label="Guide reading progress"
+              aria-valuenow={currentChapter}
+              aria-valuemin={1}
+              aria-valuemax={chapters.length}
+              className="w-24 h-2 bg-forge-950 rounded-full overflow-hidden border border-white/[0.08]"
+            >
               <div
                 style={{ width: `${(currentChapter / chapters.length) * 100}%` }}
                 className="h-full bg-brand-500 transition-all duration-300"
@@ -124,13 +133,14 @@ export const GuidePage: React.FC<GuidePageProps> = ({ onNavigate }) => {
       {/* Main Grid: Sidebar + Chapter Content */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Navigation Sidebar (4 Cols) */}
-        <div className="lg:col-span-4 space-y-2">
+        <aside aria-label="Handbook chapters" className="lg:col-span-4 space-y-2">
           {/* Mobile Chapter Selector */}
           <div className="lg:hidden card-surface p-3 border border-white/[0.08]">
-            <label className="block text-xs font-semibold text-slate-400 mb-1">
+            <label htmlFor="guide-chapter-select" className="block text-xs font-semibold text-slate-400 mb-1">
               Select Handbook Chapter:
             </label>
             <select
+              id="guide-chapter-select"
               value={currentChapter}
               onChange={(e) => setCurrentChapter(Number(e.target.value))}
               className="w-full px-3 py-2 text-xs font-medium bg-forge-950 border border-white/[0.1] rounded-lg text-slate-100 focus:outline-none focus:border-brand-500"
@@ -144,7 +154,10 @@ export const GuidePage: React.FC<GuidePageProps> = ({ onNavigate }) => {
           </div>
 
           {/* Desktop Sticky Chapters List */}
-          <div className="hidden lg:block card-surface p-3 space-y-1 border border-white/[0.08] sticky top-20">
+          <nav
+            aria-label="Guide chapters navigation"
+            className="hidden lg:block card-surface p-3 space-y-1 border border-white/[0.08] sticky top-20"
+          >
             <div className="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-white/[0.06] mb-1">
               Handbook Chapters
             </div>
@@ -154,6 +167,9 @@ export const GuidePage: React.FC<GuidePageProps> = ({ onNavigate }) => {
               return (
                 <button
                   key={ch.id}
+                  type="button"
+                  aria-current={isActive ? 'step' : undefined}
+                  aria-pressed={isActive}
                   onClick={() => setCurrentChapter(ch.id)}
                   className={`w-full flex items-center space-x-3 p-2.5 rounded-xl text-left transition-all duration-150 ${
                     isActive
@@ -168,7 +184,7 @@ export const GuidePage: React.FC<GuidePageProps> = ({ onNavigate }) => {
                         : 'bg-forge-950 border-white/[0.06] text-slate-500'
                     }`}
                   >
-                    <Icon className="w-3.5 h-3.5" />
+                    <Icon className="w-3.5 h-3.5" aria-hidden="true" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-semibold truncate tracking-tight text-slate-200">
@@ -178,12 +194,12 @@ export const GuidePage: React.FC<GuidePageProps> = ({ onNavigate }) => {
                       {ch.subtitle}
                     </div>
                   </div>
-                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-brand-400 shrink-0" />}
+                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-brand-400 shrink-0" aria-hidden="true" />}
                 </button>
               );
             })}
-          </div>
-        </div>
+          </nav>
+        </aside>
 
         {/* Right Content Pane (8 Cols) */}
         <div className="lg:col-span-8 space-y-6">

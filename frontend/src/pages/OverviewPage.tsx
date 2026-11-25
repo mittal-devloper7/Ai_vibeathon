@@ -459,13 +459,16 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ onNavigate }) => {
             {recentDeliveries.length > 0 ? (
               <div className="space-y-2">
                 {recentDeliveries.map((d) => (
-                  <div
+                  <button
                     key={d.id}
+                    type="button"
                     onClick={() => setSelectedDeliveryId(d.id)}
-                    className="p-3 bg-forge-950/80 hover:bg-forge-850 border border-white/[0.06] hover:border-brand-500/30 rounded-xl transition cursor-pointer flex items-center justify-between gap-3 group"
+                    aria-label={`Inspect delivery ${d.id} (${d.event_type}, status ${d.status})`}
+                    className="w-full text-left p-3 bg-forge-950/80 hover:bg-forge-850 border border-white/[0.06] hover:border-brand-500/30 rounded-xl transition cursor-pointer flex items-center justify-between gap-3 group"
                   >
                     <div className="flex items-center space-x-3 min-w-0">
                       <span
+                        aria-hidden="true"
                         className={`w-2 h-2 rounded-full shrink-0 ${
                           d.status === 'succeeded'
                             ? 'bg-emerald-400'
@@ -502,11 +505,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ onNavigate }) => {
                           Attempt {d.attempt_count}/{d.max_attempts}
                         </div>
                       </div>
-                      <span className="text-slate-500 group-hover:text-brand-400 transition-colors">
+                      <span className="text-slate-500 group-hover:text-brand-400 transition-colors" aria-hidden="true">
                         <ArrowRight className="w-4 h-4" />
                       </span>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (

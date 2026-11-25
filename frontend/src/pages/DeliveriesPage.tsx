@@ -124,9 +124,10 @@ export const DeliveriesPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Search Box */}
           <div className="relative flex-1">
-            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
             <input
               type="text"
+              aria-label="Search deliveries by ID, event type, or endpoint"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by Delivery ID, Event ID, Type, or Endpoint..."
@@ -136,8 +137,11 @@ export const DeliveriesPage: React.FC = () => {
 
           {/* Endpoint Filter Dropdown */}
           <div className="flex items-center space-x-2">
-            <span className="text-slate-400 font-medium text-[11px]">Endpoint:</span>
+            <label htmlFor="deliveries-endpoint-filter" className="text-slate-400 font-medium text-[11px]">
+              Endpoint:
+            </label>
             <select
+              id="deliveries-endpoint-filter"
               value={endpointFilter}
               onChange={(e) => setEndpointFilter(e.target.value)}
               className="bg-forge-950 border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 max-w-xs truncate"
@@ -153,8 +157,11 @@ export const DeliveriesPage: React.FC = () => {
 
           {/* Limit Dropdown */}
           <div className="flex items-center space-x-2">
-            <span className="text-slate-400 font-medium text-[11px]">Limit:</span>
+            <label htmlFor="deliveries-limit-filter" className="text-slate-400 font-medium text-[11px]">
+              Limit:
+            </label>
             <select
+              id="deliveries-limit-filter"
               value={limit}
               onChange={(e) => setLimit(parseInt(e.target.value))}
               className="bg-forge-950 border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
@@ -167,9 +174,9 @@ export const DeliveriesPage: React.FC = () => {
         </div>
 
         {/* Status Filter Chips */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-white/[0.06]">
+        <div role="group" aria-label="Filter deliveries by status" className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-white/[0.06]">
           <span className="text-[11px] text-slate-400 mr-1 flex items-center space-x-1">
-            <Filter className="w-3 h-3 text-slate-500" />
+            <Filter className="w-3 h-3 text-slate-500" aria-hidden="true" />
             <span>Status:</span>
           </span>
           {[
@@ -182,6 +189,8 @@ export const DeliveriesPage: React.FC = () => {
           ].map((st) => (
             <button
               key={st.id}
+              type="button"
+              aria-pressed={statusFilter === st.id}
               onClick={() => setStatusFilter(st.id)}
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition ${
                 statusFilter === st.id
@@ -249,7 +258,9 @@ export const DeliveriesPage: React.FC = () => {
                         <div className="flex items-center space-x-1.5">
                           <span className="text-brand-400 font-semibold">{d.id.substring(0, 10)}…</span>
                           <button
+                            type="button"
                             onClick={(e) => handleCopy(d.id, e)}
+                            aria-label={`Copy delivery ID ${d.id}`}
                             className="p-1 text-slate-500 hover:text-slate-200 transition"
                             title="Copy full delivery ID"
                           >
@@ -354,6 +365,8 @@ export const DeliveriesPage: React.FC = () => {
                       {/* Action */}
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <button
+                          type="button"
+                          aria-label={`Inspect delivery ${d.id}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedDeliveryId(d.id);

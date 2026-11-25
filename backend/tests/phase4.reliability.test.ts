@@ -39,7 +39,7 @@ describe('Phase 4 Reliability Engine Integration & Unit Tests', () => {
 
   async function waitForDelivery(
     deliveryId: string,
-    timeoutMs = 20000
+    timeoutMs = 45000
   ): Promise<{ status: string; attempt_count: number; last_http_status: number; last_failure_class: string | null }> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {

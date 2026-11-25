@@ -107,6 +107,21 @@ export const EndpointsPage: React.FC = () => {
     fetchEndpoints();
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || rotatingEndpoint) return;
+      if (selectedEndpointForHealth) {
+        setSelectedEndpointForHealth(null);
+      } else if (revealedSecret) {
+        setRevealedSecret(null);
+      } else if (showCreateModal) {
+        setShowCreateModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showCreateModal, revealedSecret, selectedEndpointForHealth, rotatingEndpoint]);
+
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -290,15 +305,18 @@ export const EndpointsPage: React.FC = () => {
 
         <div className="flex items-center space-x-2 w-full sm:w-auto">
           <button
+            type="button"
             onClick={fetchEndpoints}
             disabled={loading}
             className="p-2 rounded-lg bg-forge-800 hover:bg-forge-750 text-slate-300 border border-white/[0.08] transition disabled:opacity-50"
             title="Refresh endpoints"
+            aria-label="Refresh endpoints"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
 
           <button
+            type="button"
             onClick={() => setShowCreateModal(true)}
             className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition shadow-md shadow-brand-950/40"
           >
@@ -311,22 +329,29 @@ export const EndpointsPage: React.FC = () => {
       {/* Filter & Search Toolbar */}
       <div className="card-surface p-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
         <div className="relative flex-1">
-          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, URL, ID, or subscription tag..."
+            aria-label="Search endpoints by name, URL, ID, or subscription tag"
             className="w-full pl-9 pr-3 py-1.5 bg-forge-950 border border-white/[0.08] rounded-lg text-slate-200 placeholder-slate-500 text-xs focus:outline-none focus:border-brand-500/60"
           />
         </div>
 
-        <div className="flex items-center space-x-1.5 self-end sm:self-auto">
+        <div
+          role="group"
+          aria-label="Filter endpoints by status"
+          className="flex items-center space-x-1.5 self-end sm:self-auto"
+        >
           <span className="text-[11px] text-slate-400 mr-1 hidden sm:inline">Status:</span>
           {(['all', 'active', 'disabled'] as const).map((status) => (
             <button
               key={status}
+              type="button"
               onClick={() => setStatusFilter(status)}
+              aria-pressed={statusFilter === status}
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition capitalize ${
                 statusFilter === status
                   ? 'bg-forge-800 text-brand-300 border border-brand-500/30'
@@ -377,11 +402,22 @@ export const EndpointsPage: React.FC = () => {
                       >
                         {/* Expand Chevron */}
                         <td className="px-3 py-3.5 text-slate-500">
-                          {isExpanded ? (
-                            <ChevronDown className="w-4 h-4 text-brand-400" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4" />
-                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleExpand(ep.id);
+                            }}
+                            aria-expanded={isExpanded}
+                            aria-label={`${isExpanded ? 'Collapse' : 'Expand'} details for ${ep.name}`}
+                            className="p-0.5 rounded hover:text-brand-400 transition"
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-brand-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </button>
                         </td>
 
                         {/* Name, ID & Destination URL */}
@@ -401,9 +437,11 @@ export const EndpointsPage: React.FC = () => {
                               {ep.url}
                             </span>
                             <button
+                              type="button"
                               onClick={(e) => handleCopyUrl(ep.id, ep.url, e)}
                               className="text-slate-500 hover:text-slate-200 p-0.5 rounded transition"
                               title="Copy URL"
+                              aria-label={`Copy destination URL for ${ep.name}`}
                             >
                               {isCopied ? (
                                 <Check className="w-3 h-3 text-emerald-400" />
@@ -450,10 +488,13 @@ export const EndpointsPage: React.FC = () => {
                         {/* Active / Disabled Status */}
                         <td className="px-3 py-3.5">
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleToggleStatus(ep);
                             }}
+                            aria-pressed={ep.status === 'active'}
+                            aria-label={`${ep.status === 'active' ? 'Pause' : 'Activate'} ${ep.name}`}
                             className={`inline-flex items-center space-x-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition border ${
                               ep.status === 'active'
                                 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
@@ -478,18 +519,22 @@ export const EndpointsPage: React.FC = () => {
                           >
                             {/* Gemini Health Report */}
                             <button
+                              type="button"
                               onClick={() => handleOpenHealthReport(ep)}
                               className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 border border-indigo-500/30 transition"
                               title="Gemini AI Health Assessment"
+                              aria-label={`Run Gemini AI health assessment for ${ep.name}`}
                             >
                               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                             </button>
 
                             {/* Rotate Secret */}
                             <button
+                              type="button"
                               onClick={() => handleRotateSecret(ep)}
                               className="p-1.5 rounded-lg bg-forge-950 text-slate-400 hover:text-amber-300 hover:bg-forge-800 border border-white/[0.08] transition"
                               title="Rotate HMAC Signing Secret"
+                              aria-label={`Rotate HMAC signing secret for ${ep.name}`}
                             >
                               <Key className="w-3.5 h-3.5" />
                             </button>
@@ -595,10 +640,15 @@ export const EndpointsPage: React.FC = () => {
       {/* Register Endpoint Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-xl rounded-2xl bg-forge-900 border border-white/[0.1] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="register-endpoint-title"
+            className="w-full max-w-xl rounded-2xl bg-forge-900 border border-white/[0.1] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+          >
             <div className="p-5 border-b border-white/[0.08] flex items-center justify-between">
               <div>
-                <h3 className="text-base font-semibold text-slate-100 tracking-tight">
+                <h3 id="register-endpoint-title" className="text-base font-semibold text-slate-100 tracking-tight">
                   Register Webhook Destination
                 </h3>
                 <p className="text-xs text-slate-400">
@@ -606,7 +656,9 @@ export const EndpointsPage: React.FC = () => {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setShowCreateModal(false)}
+                aria-label="Close register endpoint modal"
                 className="p-1 rounded text-slate-400 hover:text-slate-200"
               >
                 <X className="w-4 h-4" />
@@ -616,10 +668,11 @@ export const EndpointsPage: React.FC = () => {
             <form onSubmit={handleCreateSubmit} className="p-5 space-y-4 overflow-y-auto flex-1">
               {/* Endpoint Name */}
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
+                <label htmlFor="ep-name-input" className="block text-xs font-medium text-slate-300 mb-1">
                   Endpoint Name *
                 </label>
                 <input
+                  id="ep-name-input"
                   type="text"
                   required
                   value={formData.name}
@@ -632,12 +685,13 @@ export const EndpointsPage: React.FC = () => {
               {/* Destination URL + Quick Presets */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-medium text-slate-300">
+                  <label htmlFor="ep-url-input" className="text-xs font-medium text-slate-300">
                     Destination URL *
                   </label>
                   <span className="text-[10px] text-slate-400">Must be reachable by HookForge worker</span>
                 </div>
                 <input
+                  id="ep-url-input"
                   type="url"
                   required
                   value={formData.url}
@@ -697,13 +751,14 @@ export const EndpointsPage: React.FC = () => {
                       onChange={(e) => setCustomTagInput(e.target.value)}
                       onKeyDown={handleAddCustomTag}
                       placeholder="Add tag and press Enter..."
+                      aria-label="Add custom subscribed event tag"
                       className="bg-transparent text-xs font-mono text-slate-200 placeholder-slate-500 focus:outline-none w-full px-1"
                     />
                   </div>
                 </div>
 
                 {/* Preset Chips */}
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <div className="mt-2 flex flex-wrap items-center gap-1.5" role="group" aria-label="Preset event subscriptions">
                   <span className="text-[10px] text-slate-400 mr-1">Quick presets:</span>
                   {PRESET_EVENTS.map((preset) => {
                     const isSelected = formData.subscriptions.includes(preset);
@@ -712,6 +767,7 @@ export const EndpointsPage: React.FC = () => {
                         key={preset}
                         type="button"
                         onClick={() => handleTogglePresetTag(preset)}
+                        aria-pressed={isSelected}
                         className={`text-[10px] font-mono px-2 py-0.5 rounded border transition ${
                           isSelected
                             ? 'bg-brand-500/20 text-brand-300 border-brand-500/40'
@@ -734,10 +790,11 @@ export const EndpointsPage: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">
+                    <label htmlFor="ep-max-attempts" className="block text-[11px] text-slate-400 mb-1">
                       Max Retry Attempts
                     </label>
                     <input
+                      id="ep-max-attempts"
                       type="number"
                       min={1}
                       max={15}
@@ -756,10 +813,11 @@ export const EndpointsPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">
+                    <label htmlFor="ep-attempt-timeout" className="block text-[11px] text-slate-400 mb-1">
                       Attempt Timeout (ms)
                     </label>
                     <input
+                      id="ep-attempt-timeout"
                       type="number"
                       min={500}
                       max={30000}
@@ -779,10 +837,11 @@ export const EndpointsPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">
+                    <label htmlFor="ep-max-in-flight" className="block text-[11px] text-slate-400 mb-1">
                       Max In-Flight Concurrency
                     </label>
                     <input
+                      id="ep-max-in-flight"
                       type="number"
                       min={1}
                       max={50}
@@ -801,10 +860,11 @@ export const EndpointsPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">
+                    <label htmlFor="ep-rate-limit" className="block text-[11px] text-slate-400 mb-1">
                       Rate Limit (req / min)
                     </label>
                     <input
+                      id="ep-rate-limit"
                       type="number"
                       min={10}
                       max={60000}
@@ -852,13 +912,18 @@ export const EndpointsPage: React.FC = () => {
       {/* One-Time Secret Reveal Modal */}
       {revealedSecret && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-md rounded-2xl bg-forge-900 border border-brand-500/40 shadow-2xl p-6 space-y-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="secret-reveal-title"
+            className="w-full max-w-md rounded-2xl bg-forge-900 border border-brand-500/40 shadow-2xl p-6 space-y-4"
+          >
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/25 flex items-center justify-center text-brand-400">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-slate-100 tracking-tight">
+                <h3 id="secret-reveal-title" className="text-base font-semibold text-slate-100 tracking-tight">
                   {revealedSecret.isRotation ? 'Secret Rotated Successfully' : 'Endpoint Registered'}
                 </h3>
                 <p className="text-xs text-slate-400">
@@ -872,23 +937,26 @@ export const EndpointsPage: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-medium text-slate-300">
+              <label htmlFor="revealed-signing-secret" className="text-[11px] font-medium text-slate-300">
                 Signing Secret (HMAC-SHA256)
               </label>
               <div className="flex items-center space-x-2">
                 <input
+                  id="revealed-signing-secret"
                   type="text"
                   readOnly
                   value={revealedSecret.secret}
                   className="flex-1 px-3 py-2 text-xs font-mono bg-forge-950 border border-white/[0.1] rounded-lg text-brand-300 select-all"
                 />
                 <button
+                  type="button"
                   onClick={() => {
                     navigator.clipboard.writeText(revealedSecret.secret);
                     setSecretCopied(true);
                     toast.success('Signing secret copied to clipboard');
                     setTimeout(() => setSecretCopied(false), 2000);
                   }}
+                  aria-label="Copy signing secret"
                   className="px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-lg flex items-center space-x-1 transition"
                 >
                   {secretCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -899,6 +967,7 @@ export const EndpointsPage: React.FC = () => {
 
             <div className="pt-2 flex justify-end">
               <button
+                type="button"
                 onClick={() => setRevealedSecret(null)}
                 className="px-4 py-2 bg-forge-800 hover:bg-forge-750 text-slate-200 text-xs font-medium rounded-lg transition"
               >
@@ -912,14 +981,19 @@ export const EndpointsPage: React.FC = () => {
       {/* Gemini AI Health Report Modal */}
       {selectedEndpointForHealth && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-2xl rounded-2xl bg-forge-900 border border-indigo-500/30 shadow-2xl overflow-hidden flex flex-col max-h-[88vh]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="health-report-title"
+            className="w-full max-w-2xl rounded-2xl bg-forge-900 border border-indigo-500/30 shadow-2xl overflow-hidden flex flex-col max-h-[88vh]"
+          >
             <div className="p-5 border-b border-white/[0.08] flex items-center justify-between">
               <div className="flex items-center space-x-2.5">
                 <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-100 tracking-tight">
+                  <h3 id="health-report-title" className="text-base font-semibold text-slate-100 tracking-tight">
                     Gemini Endpoint Health Assessment
                   </h3>
                   <p className="text-xs text-slate-400">
@@ -930,15 +1004,19 @@ export const EndpointsPage: React.FC = () => {
 
               <div className="flex items-center space-x-2">
                 <button
+                  type="button"
                   onClick={() => handleOpenHealthReport(selectedEndpointForHealth, true)}
                   disabled={healthReportLoading}
                   className="p-1.5 rounded-lg bg-forge-800 text-slate-300 hover:text-white transition"
                   title="Force refresh assessment"
+                  aria-label="Force refresh health assessment"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${healthReportLoading ? 'animate-spin' : ''}`} />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setSelectedEndpointForHealth(null)}
+                  aria-label="Close health assessment modal"
                   className="p-1 text-slate-400 hover:text-slate-200"
                 >
                   <X className="w-4 h-4" />

@@ -71,6 +71,16 @@ export const DeliveryDetailModal: React.FC<DeliveryDetailModalProps> = ({
     fetchDetail();
   }, [deliveryId]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isReplaying) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isReplaying, onClose]);
+
   const handleReplay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!replayReason.trim()) {
@@ -152,13 +162,21 @@ export const DeliveryDetailModal: React.FC<DeliveryDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="w-full max-w-4xl max-h-[92vh] rounded-2xl bg-forge-900 border border-white/[0.1] shadow-2xl flex flex-col overflow-hidden">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delivery-detail-modal-title"
+        className="w-full max-w-4xl max-h-[92vh] rounded-2xl bg-forge-900 border border-white/[0.1] shadow-2xl flex flex-col overflow-hidden"
+      >
         {/* Sticky Modal Header */}
         <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between bg-forge-900/98 backdrop-blur sticky top-0 z-20">
           <div className="flex items-center space-x-3 min-w-0">
-            <span className="font-bold text-slate-100 text-sm sm:text-base tracking-tight shrink-0">
+            <h2
+              id="delivery-detail-modal-title"
+              className="font-bold text-slate-100 text-sm sm:text-base tracking-tight shrink-0"
+            >
               Delivery Audit Record
-            </span>
+            </h2>
             <span className="font-mono text-xs text-brand-300 bg-forge-950 px-2.5 py-1 rounded-lg border border-white/[0.08] truncate max-w-[200px] sm:max-w-none">
               {deliveryId}
             </span>
@@ -343,10 +361,11 @@ export const DeliveryDetailModal: React.FC<DeliveryDetailModalProps> = ({
                   HookForge will enqueue a fresh delivery attempt with a new lease, preserving original event payload and linking replay lineage.
                 </p>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                  <label htmlFor="replay-audit-reason" className="block text-[11px] font-medium text-slate-300 mb-1">
                     Replay Audit Reason *
                   </label>
                   <input
+                    id="replay-audit-reason"
                     type="text"
                     required
                     value={replayReason}

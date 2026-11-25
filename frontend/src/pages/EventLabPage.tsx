@@ -305,14 +305,15 @@ export const EventLabPage: React.FC = () => {
           <div className="card-surface p-4 sm:p-5 space-y-4">
             {/* Event Type Selector */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2">
+              <span id="event-type-label" className="block text-xs font-semibold text-slate-300 mb-2">
                 Event Type
-              </label>
-              <div className="flex flex-wrap gap-1.5">
+              </span>
+              <div role="group" aria-labelledby="event-type-label" className="flex flex-wrap gap-1.5">
                 {['order.created', 'payment.captured', 'payment.failed', 'invoice.paid', 'custom'].map((t) => (
                   <button
                     key={t}
                     type="button"
+                    aria-pressed={eventType === t}
                     onClick={() => handleSelectEventType(t)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-mono transition ${
                       eventType === t
@@ -329,6 +330,7 @@ export const EventLabPage: React.FC = () => {
                 <div className="mt-2.5">
                   <input
                     type="text"
+                    aria-label="Custom event type"
                     placeholder="e.g. user.subscription_updated or invoice.voided"
                     value={customType}
                     onChange={(e) => setCustomType(e.target.value)}
@@ -341,7 +343,7 @@ export const EventLabPage: React.FC = () => {
             {/* Idempotency Key Section */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
+                <label htmlFor="lab-idempotency-key" className="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
                   <span>Idempotency-Key Header</span>
                   <span className="text-[10px] text-slate-500 font-normal">(Optional header for deduplication)</span>
                 </label>
@@ -352,12 +354,12 @@ export const EventLabPage: React.FC = () => {
                     className="text-brand-400 hover:text-brand-300 flex items-center space-x-1"
                     title="Generate random idempotency key"
                   >
-                    <RotateCcw className="w-3 h-3" />
+                    <RotateCcw className="w-3 h-3" aria-hidden="true" />
                     <span>New Key</span>
                   </button>
                   {lastUsedKey && (
                     <>
-                      <span className="text-slate-700">|</span>
+                      <span className="text-slate-700" aria-hidden="true">|</span>
                       <button
                         type="button"
                         onClick={handleReuseLastKey}
@@ -368,11 +370,11 @@ export const EventLabPage: React.FC = () => {
                       </button>
                     </>
                   )}
-                  <span className="text-slate-700">|</span>
+                  <span className="text-slate-700" aria-hidden="true">|</span>
                   <button
                     type="button"
                     onClick={() => setIdempotencyKey('')}
-                    className="text-slate-500 hover:text-slate-400"
+                    className="text-slate-400 hover:text-slate-200"
                   >
                     Clear
                   </button>
@@ -380,6 +382,7 @@ export const EventLabPage: React.FC = () => {
               </div>
 
               <input
+                id="lab-idempotency-key"
                 type="text"
                 value={idempotencyKey}
                 onChange={(e) => setIdempotencyKey(e.target.value)}
@@ -399,19 +402,19 @@ export const EventLabPage: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center space-x-2">
-                  <label className="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
-                    <Code className="w-3.5 h-3.5 text-indigo-400" />
+                  <label htmlFor="lab-json-payload" className="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
+                    <Code className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
                     <span>Payload Data (<code className="text-slate-400 font-mono text-[11px]">data</code>)</span>
                   </label>
 
                   {jsonValidation.isValid ? (
                     <span className="inline-flex items-center space-x-1 text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.2 rounded border border-emerald-500/20">
-                      <Check className="w-3 h-3" />
+                      <Check className="w-3 h-3" aria-hidden="true" />
                       <span>Valid JSON</span>
                     </span>
                   ) : (
                     <span className="inline-flex items-center space-x-1 text-[10px] text-rose-400 bg-rose-500/10 px-2 py-0.2 rounded border border-rose-500/20">
-                      <AlertCircle className="w-3 h-3" />
+                      <AlertCircle className="w-3 h-3" aria-hidden="true" />
                       <span>Syntax Error</span>
                     </span>
                   )}
@@ -428,6 +431,7 @@ export const EventLabPage: React.FC = () => {
 
               <div className="relative">
                 <textarea
+                  id="lab-json-payload"
                   rows={10}
                   value={payloadText}
                   onChange={(e) => setPayloadText(e.target.value)}

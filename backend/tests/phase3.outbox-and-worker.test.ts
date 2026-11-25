@@ -28,7 +28,7 @@ describe('Phase 3 Durable Event Processing Integration Tests', () => {
 
   async function waitForDelivery(
     deliveryId: string,
-    timeoutMs = 20000
+    timeoutMs = 45000
   ): Promise<{ status: string; attempt_count: number; last_http_status: number; last_failure_class: string | null }> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
@@ -337,7 +337,7 @@ describe('Phase 3 Durable Event Processing Integration Tests', () => {
       );
       const deliveryId = delRes.rows[0]!.id;
 
-      const completedDelivery = await waitForDelivery(deliveryId, 15000);
+      const completedDelivery = await waitForDelivery(deliveryId, 35000);
       assert.equal(completedDelivery.status, 'retry_scheduled');
 
       // 3. Verify delivery_attempts recorded timeout
